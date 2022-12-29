@@ -1,4 +1,5 @@
 file(GLOB _sources *.c)
 psn00bsdk_add_executable(test GPREL ${_sources})
 psn00bsdk_target_incbin(test PRIVATE tim_texture bardagi_2018.tim)
+psn00bsdk_target_incbin(test PRIVATE rwx_model rwx.bin)
 install(FILES ${PROJECT_BINARY_DIR}/test.exe TYPE BIN)
