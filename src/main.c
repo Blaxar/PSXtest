@@ -82,9 +82,6 @@ const int16_t* rwx_vertices = (int16_t*) &rwx_model[4];
 uint16_t* rwx_faces = NULL;
 int16_t* rwx_normals = NULL;
 
-SVECTOR tmp_vertices[3];
-SVECTOR tmp_normal;
-
 /* To keep a copy of the TIM coordinates for later */
 int tim_mode;
 RECT tim_prect, tim_crect;
@@ -315,40 +312,31 @@ void printFace(const uint16_t* face) {
 
 void printFaceVertices(const uint16_t* face, const int16_t* vertices) {
   FntPrint(-1, "%hd, %hd, %hd\n%hd, %hd, %hd\n%hd, %hd, %hd\n",
-           vertices[face[0] * 3],
-           vertices[face[0] * 3 + 1],
-           vertices[face[0] * 3 + 2],
-           vertices[face[1] * 3],
-           vertices[face[1] * 3 + 1],
-           vertices[face[1] * 3 + 2],
-           vertices[face[2] * 3],
-           vertices[face[2] * 3 + 1],
-           vertices[face[2] * 3 + 2]
+           vertices[face[0] * 4],
+           vertices[face[0] * 4 + 1],
+           vertices[face[0] * 4 + 2],
+           vertices[face[1] * 4],
+           vertices[face[1] * 4 + 1],
+           vertices[face[1] * 4 + 2],
+           vertices[face[2] * 4],
+           vertices[face[2] * 4 + 1],
+           vertices[face[2] * 4 + 2]
     );
 }
 
-void setFaceVertices(SVECTOR vert[3], const size_t id, const int16_t* vertices,
-               const uint16_t* faces) {
-  vert[0].vx = vertices[faces[id * 3] * 3];
-  vert[0].vy = -vertices[faces[id * 3] * 3 + 1];
-  vert[0].vz = vertices[faces[id * 3] * 3 + 2];
-  vert[0].pad = 0;
-  vert[1].vx = vertices[faces[id * 3 + 1] * 3];
-  vert[1].vy = -vertices[faces[id * 3 + 1] * 3 + 1];
-  vert[1].vz = vertices[faces[id * 3 + 1] * 3 + 2];
-  vert[1].pad = 0;
-  vert[2].vx = vertices[faces[id * 3 + 2] * 3];
-  vert[2].vy = -vertices[faces[id * 3 + 2] * 3 + 1];
-  vert[2].vz = vertices[faces[id * 3 + 2] * 3 + 2];
-  vert[2].pad = 0;
+void ldv3FaceVertices(const size_t id, const int16_t* vertices,
+                      const uint16_t* faces) {
+  /* Load first 3 vertices to make a face */
+  gte_ldv3(
+    &vertices[faces[id * 3] * 4],
+    &vertices[faces[id * 3 + 1] * 4],
+    &vertices[faces[id * 3 + 2] * 4]
+    );
 }
 
-void setFaceNormal(SVECTOR* norm, const size_t id,
-                   const int16_t* normals) {
-  norm->vx = normals[id * 3];
-  norm->vy = normals[id * 3 + 1];
-  norm->vz = normals[id * 3 + 2];
-  norm->pad = 0;
+void ldv0FaceNormal(const size_t id,
+                    const int16_t* normals) {
+  gte_ldv0(&normals[id * 4]);
 }
 
 void drawObject(const uint16_t nb_vertices, uint16_t nb_faces,
@@ -376,15 +364,8 @@ void drawObject(const uint16_t nb_vertices, uint16_t nb_faces,
   gte_SetLightMatrix(&lmtx);
 
   for (int i = 0; i < nb_faces; i++) {
-    setFaceVertices(tmp_vertices, i, vertices, faces);
-    setFaceNormal(&tmp_normal, i, normals);
-
     /* Load first 3 vertices to make a face */
-    gte_ldv3(
-      &tmp_vertices[0],
-      &tmp_vertices[1],
-      &tmp_vertices[2]
-      );
+    ldv3FaceVertices(i, vertices, faces);
 
     /* Rotation, Translation and Perspective Triple */
     gte_rtpt();
@@ -412,7 +393,7 @@ void drawObject(const uint16_t nb_vertices, uint16_t nb_faces,
     gte_stsxy2(&pol3->x2);
 
     gte_ldrgb(&pol3->r0);
-    gte_ldv0(&tmp_normal);
+    ldv0FaceNormal(i, normals);
     gte_ncs();
     gte_strgb(&pol3->r0);
 
@@ -468,8 +449,8 @@ int main(int argc, const char *argv[])
   // Main loop
   counter = 0;
 
-  rwx_faces = (uint16_t*) &rwx_model[4 + (*rwx_nb_vertices) * 6];
-  rwx_normals = (int16_t*) &rwx_model[4 + (*rwx_nb_vertices) * 6 + (*rwx_nb_faces) * 6];
+  rwx_faces = (uint16_t*) &rwx_model[4 + (*rwx_nb_vertices) * 8];
+  rwx_normals = (int16_t*) &rwx_model[4 + (*rwx_nb_vertices) * 8 + (*rwx_nb_faces) * 6];
 
   while (1)
   {
